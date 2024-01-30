@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+
+  database:
+    image: postgres:15.1-alpine
+    restart: always
+    container_name: postgres_database
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    networks:
+      - fast_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    networks:
+      - fast_network
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+
+networks:
+  ylab_network:
+    name: fast_network
+volumes:
+  ylab_pgdata:
+    name: postgres_data
