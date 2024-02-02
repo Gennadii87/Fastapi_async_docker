@@ -9,7 +9,7 @@ class Menu(Base):
     __tablename__ = "menus"
 
     id = Column(UUID, primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    title = Column(String, index=True)
+    title = Column(String, unique=True, index=True)
     description = Column(String)
     submenus = relationship("SubMenu", back_populates="menu", cascade="all, delete-orphan")
 
@@ -18,7 +18,7 @@ class SubMenu(Base):
     __tablename__ = "submenus"
 
     id = Column(UUID, primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    title = Column(String, index=True)
+    title = Column(String, unique=True, index=True)
     description = Column(String)
     menu_id = Column(UUID, ForeignKey("menus.id"))
     menu = relationship("Menu", back_populates="submenus")
@@ -29,7 +29,7 @@ class Dish(Base):
     __tablename__ = "dishes"
 
     id = Column(UUID, primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    title = Column(String, index=True)
+    title = Column(String, unique=True, index=True)
     description = Column(String)
     price = Column(DECIMAL(precision=10, scale=4))
     submenu_id = Column(UUID, ForeignKey("submenus.id"), index=True, nullable=False)

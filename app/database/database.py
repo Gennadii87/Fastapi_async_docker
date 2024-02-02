@@ -1,8 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
-
+from sqlalchemy.orm import declarative_base
 from app.config import conn_url
 
 Base = declarative_base()
@@ -17,7 +16,7 @@ SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, class_=Asyn
 async def init_db():
     """Создание таблиц."""
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 

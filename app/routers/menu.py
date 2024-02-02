@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-
-from app.database.database import get_db
 from typing import List, cast as typing_cast
 
 from sqlalchemy import func
@@ -10,14 +8,14 @@ from sqlalchemy.future import select
 from app.config import prefixes, MENUS_LINK, MENU_LINK
 from app.database.models import Menu as DBMenu, SubMenu as DBSubMenu, Dish as DBDish
 from app.database.schemas import Menu, MenuCreate
-
+from app.database.database import get_db
 
 router = APIRouter(prefix=prefixes)
 
 
-@router.get(MENUS_LINK, response_model=List[Menu])
+@router.get(MENUS_LINK, response_model=List[Menu], tags=['Меню'])
 async def read_all_menus(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
-    async with db.begin():
+    async with db:
         menus_with_counts = await db.execute(
             select(
                 DBMenu,
@@ -39,7 +37,7 @@ async def read_all_menus(skip: int = 0, limit: int = 10, db: AsyncSession = Depe
     return result_menus
 
 
-@router.get(MENU_LINK, response_model=Menu)
+@router.get(MENU_LINK, response_model=Menu, tags=['Меню'])
 async def read_menu(menu_id: str, db: AsyncSession = Depends(get_db)):
     async with db.begin():
         menu_data = await db.execute(
@@ -68,9 +66,15 @@ async def read_menu(menu_id: str, db: AsyncSession = Depends(get_db)):
     return menu_with_counts
 
 
-@router.post(MENUS_LINK, response_model=Menu, status_code=status.HTTP_201_CREATED)
+@router.post(MENUS_LINK, response_model=Menu, status_code=status.HTTP_201_CREATED, tags=['Меню'])
 async def create_menu(menu: MenuCreate, db: AsyncSession = Depends(get_db)):
     async with db as session:
+        # Проверяем наличие меню с таким же title
+        existing_menu = await session.execute(select(DBMenu).filter(DBMenu.title == menu.title))
+        if existing_menu.scalar():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="A menu with the same name already exists")
+        # Если меню с таким title не существует, создаем новое меню
         db_menu = DBMenu(**menu.dict())
         session.add(db_menu)
         await session.commit()
@@ -78,11 +82,11 @@ async def create_menu(menu: MenuCreate, db: AsyncSession = Depends(get_db)):
         return db_menu
 
 
-@router.patch(MENU_LINK, response_model=Menu)
+@router.patch(MENU_LINK, response_model=Menu, tags=['Меню'])
 async def update_menu(menu_id: str, menu: MenuCreate, db: AsyncSession = Depends(get_db)):
     db_menu = (await db.execute(select(DBMenu).filter(DBMenu.id == menu_id))).scalars().first()
     if db_menu is None:
-        raise HTTPException(status_code=404, detail="Menu not found")
+        raise HTTPException(status_code=404, detail="menu not found")
     for key, value in menu.dict(exclude_unset=True).items():
         setattr(db_menu, key, value)
     await db.commit()
@@ -90,7 +94,7 @@ async def update_menu(menu_id: str, menu: MenuCreate, db: AsyncSession = Depends
     return db_menu
 
 
-@router.delete(MENU_LINK)
+@router.delete(MENU_LINK, tags=['Меню'])
 async def delete_menu(menu_id: str, db: AsyncSession = Depends(get_db)):
     db_menu = await db.execute(select(DBMenu).filter(DBMenu.id == menu_id))
     db_menu = db_menu.scalars().first()

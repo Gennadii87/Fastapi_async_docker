@@ -12,14 +12,14 @@ from app.config import prefixes, DISHES_LINK, DISH_LINK
 router = APIRouter(prefix=prefixes)
 
 
-@router.get(DISHES_LINK, response_model=List[Dish])
+@router.get(DISHES_LINK, response_model=List[Dish], tags=['Блюда'])
 async def read_all_dishes(submenu_id: str, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(DBDish).filter(DBDish.submenu_id == submenu_id).offset(skip).limit(limit))
     db_dishes = result.scalars().all()
     return db_dishes
 
 
-@router.get(DISH_LINK, response_model=Dish)
+@router.get(DISH_LINK, response_model=Dish, tags=['Блюда'])
 async def read_dish(submenu_id: str, dish_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(DBDish).filter(DBDish.id == dish_id, DBDish.submenu_id == submenu_id))
     db_dish = result.scalars().first()
@@ -28,17 +28,20 @@ async def read_dish(submenu_id: str, dish_id: str, db: AsyncSession = Depends(ge
     return db_dish
 
 
-@router.post(DISHES_LINK, response_model=Dish, status_code=status.HTTP_201_CREATED)
+@router.post(DISHES_LINK, response_model=Dish, status_code=status.HTTP_201_CREATED, tags=['Блюда'])
 async def create_dish(submenu_id: str, dish: DishCreate, db: AsyncSession = Depends(get_db)):
-    async with db:
+    async with db as session:
+        existing_dish = await session.execute(select(DBDish).filter(DBDish.title == dish.title))
+        if existing_dish.scalar():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A dish with this name already exists")
         db_dish = DBDish(**dish.dict(), submenu_id=submenu_id)
-        db.add(db_dish)
-        await db.commit()
-        await db.refresh(db_dish)
+        session.add(db_dish)
+        await session.commit()
+        await session.refresh(db_dish)
         return db_dish
 
 
-@router.patch(DISH_LINK, response_model=Dish)
+@router.patch(DISH_LINK, response_model=Dish, tags=['Блюда'])
 async def update_dish(submenu_id: str, dish_id: str, dish: DishCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(DBDish).filter(DBDish.id == dish_id, DBDish.submenu_id == submenu_id))
     db_dish = result.scalars().first()
@@ -51,7 +54,7 @@ async def update_dish(submenu_id: str, dish_id: str, dish: DishCreate, db: Async
     return db_dish
 
 
-@router.delete(DISH_LINK)
+@router.delete(DISH_LINK, tags=['Блюда'])
 async def delete_dish(submenu_id: str, dish_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(DBDish).filter(DBDish.id == dish_id, DBDish.submenu_id == submenu_id))
     db_dish = result.scalars().first()

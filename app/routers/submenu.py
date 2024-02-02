@@ -13,7 +13,7 @@ from app.database.models import SubMenu as DBSubMenu, Dish as DBDish
 router = APIRouter(prefix=prefixes)
 
 
-@router.get(SUBMENUS_LINK, response_model=List[SubMenu])
+@router.get(SUBMENUS_LINK, response_model=List[SubMenu],  tags=['Подменю'])
 async def read_all_submenus(menu_id: str, skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
     submenus = await db.execute(select(DBSubMenu, func.count(DBDish.id).label("dishes_count")).outerjoin(DBDish)
                                 .filter(DBSubMenu.menu_id == menu_id).group_by(DBSubMenu.id).offset(skip).limit(limit))
@@ -31,7 +31,7 @@ async def read_all_submenus(menu_id: str, skip: int = 0, limit: int = 10, db: As
     return submenus_with_counts
 
 
-@router.get(SUBMENU_LINK, response_model=SubMenu)
+@router.get(SUBMENU_LINK, response_model=SubMenu, tags=['Подменю'])
 async def read_submenu(menu_id: str, submenu_id: str, db: AsyncSession = Depends(get_db)):
     submenu = (await db.execute(select(DBSubMenu).filter(DBSubMenu.id == submenu_id, DBSubMenu.menu_id == menu_id))
                ).scalars().first()
@@ -50,20 +50,23 @@ async def read_submenu(menu_id: str, submenu_id: str, db: AsyncSession = Depends
     return submenu_with_counts
 
 
-@router.post(SUBMENUS_LINK, response_model=SubMenu, status_code=status.HTTP_201_CREATED)
+@router.post(SUBMENUS_LINK, response_model=SubMenu, status_code=status.HTTP_201_CREATED, tags=['Подменю'])
 async def create_submenu(menu_id: str, submenu: SubMenuCreate, db: AsyncSession = Depends(get_db)):
-    async with db:
+    async with db as session:
+        existing_submenu = await session.execute(select(DBSubMenu).filter(DBSubMenu.title == submenu.title))
+        if existing_submenu.scalar():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="A submenu with the same name already exists")
         submenu_data = submenu.dict()
         submenu_data["menu_id"] = menu_id
-
         db_submenu = DBSubMenu(**submenu_data)
         db.add(db_submenu)
-        await db.commit()
-        await db.refresh(db_submenu)
+        await session.commit()
+        await session.refresh(db_submenu)
         return db_submenu
 
 
-@router.patch(SUBMENU_LINK, response_model=SubMenu)
+@router.patch(SUBMENU_LINK, response_model=SubMenu, tags=['Подменю'])
 async def update_submenu(menu_id: str, submenu_id: str, submenu: SubMenuCreate, db: AsyncSession = Depends(get_db)):
     db_submenu = (await db.execute(select(DBSubMenu).filter(DBSubMenu.id == submenu_id, DBSubMenu.menu_id == menu_id))
                   ).scalars().first()
@@ -76,7 +79,7 @@ async def update_submenu(menu_id: str, submenu_id: str, submenu: SubMenuCreate, 
     return db_submenu
 
 
-@router.delete(SUBMENU_LINK)
+@router.delete(SUBMENU_LINK, tags=['Подменю'])
 async def delete_submenu(menu_id: str, submenu_id: str, db: AsyncSession = Depends(get_db)):
     submenu = (await db.execute(select(DBSubMenu).filter(DBSubMenu.id == submenu_id, DBSubMenu.menu_id == menu_id))
                ).scalars().first()
@@ -84,4 +87,5 @@ async def delete_submenu(menu_id: str, submenu_id: str, db: AsyncSession = Depen
         raise HTTPException(status_code=404, detail="submenu not found")
     await db.delete(submenu)
     await db.commit()
-    return {f'message: Submenu deleted successfully'}
+    return {"message": "Submenu deleted successfully"}
+

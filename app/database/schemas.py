@@ -19,9 +19,6 @@ class Menu(MenuBase):
     submenus_count: int = 0
     dishes_count: int = 0
 
-    class Config:
-        from_attributes = True
-
 
 class SubMenuBase(BaseModel):
     title: str
@@ -37,9 +34,6 @@ class SubMenu(SubMenuBase):
     title: str
     description: str
     dishes_count: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class DishBase(BaseModel):
@@ -59,9 +53,5 @@ class Dish(DishBase):
     price: Union[Decimal, str]
 
     @field_validator('price')
-    @classmethod
     def validate_price(cls, v: Decimal):
         return f'{v:.2f}'
-
-    class Config:
-        from_attributes = True
