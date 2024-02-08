@@ -37,7 +37,6 @@ services:
       - "8800:80"
     env_file:
       - .env_docker
-    command: /bin/bash 
 
 networks:
   fast_network:
