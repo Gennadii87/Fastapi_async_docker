@@ -11,9 +11,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ylab_pgdata:/var/lib/postgresql/data/
+      - pgdata:/var/lib/postgresql/data/
     env_file:
-      - .env
+      - .env_docker
     networks:
       - fast_network
     healthcheck:
@@ -34,14 +34,14 @@ services:
       database:
         condition: service_healthy
     ports:
-      - "8000:80"
+      - "8800:80"
     env_file:
-      - .env
+      - .env_docker
 
 networks:
   fast_network:
     name: fast_network
 
 volumes:
-  ylab_pgdata:
-    name: postgres_data
+  pgdata:
+    name: pgdata

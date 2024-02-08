@@ -16,7 +16,7 @@ SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, class_=Asyn
 async def init_db():
     """Создание таблиц."""
     async with engine.begin() as conn:
-        # await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 
