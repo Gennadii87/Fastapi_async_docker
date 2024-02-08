@@ -37,6 +37,7 @@ services:
       - "8800:80"
     env_file:
       - .env_docker
+    command: sh -c "pytest -v"
 
 networks:
   fast_network:
